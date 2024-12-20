@@ -1,0 +1,80 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import silhouette_score, davies_bouldin_score
+from sklearn.datasets import make_blobs
+from scipy.cluster.hierarchy import dendrogram, linkage
+from sklearn.cluster import DBSCAN
+
+# Simulate a dataset (you can replace this with your own library dataset)
+# For the sake of this example, we simulate a dataset of books with 3 features:
+# 'Number of Pages', 'Publication Year', and 'Author Popularity'
+np.random.seed(42)
+X, _ = make_blobs(n_samples=200, centers=3, cluster_std=1.0, random_state=42)
+
+# Preprocess the data (Standardization)
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# ---- 1. K-Means Clustering ----
+kmeans = KMeans(n_clusters=3, random_state=42)
+kmeans_labels = kmeans.fit_predict(X_scaled)
+
+# ---- 2. Hierarchical Clustering ----
+linked = linkage(X_scaled, 'ward')
+# Create dendrogram
+plt.figure(figsize=(10, 7))
+dendrogram(linked)
+plt.title("Hierarchical Clustering Dendrogram")
+plt.xlabel('Sample Index')
+plt.ylabel('Distance')
+plt.show()
+
+# We can cut the dendrogram at a certain height to form clusters (for this example, we choose 3 clusters)
+from scipy.cluster.hierarchy import fcluster
+hierarchical_labels = fcluster(linked, t=3, criterion='maxclust')
+
+# ---- 3. DBSCAN ----
+dbscan = DBSCAN(eps=0.5, min_samples=5)
+dbscan_labels = dbscan.fit_predict(X_scaled)
+
+# ---- 4. Evaluate Clustering ----
+def evaluate_clustering(labels):
+    # Silhouette Score
+    silhouette = silhouette_score(X_scaled, labels)
+    # Davies-Bouldin Index
+    davies_bouldin = davies_bouldin_score(X_scaled, labels)
+    return silhouette, davies_bouldin
+
+# Evaluate K-Means
+kmeans_silhouette, kmeans_db_index = evaluate_clustering(kmeans_labels)
+print(f"K-Means - Silhouette Score: {kmeans_silhouette:.3f}, Davies-Bouldin Index: {kmeans_db_index:.3f}")
+
+# Evaluate Hierarchical
+hierarchical_silhouette, hierarchical_db_index = evaluate_clustering(hierarchical_labels)
+print(f"Hierarchical Clustering - Silhouette Score: {hierarchical_silhouette:.3f}, Davies-Bouldin Index: {hierarchical_db_index:.3f}")
+
+# Evaluate DBSCAN
+dbscan_silhouette, dbscan_db_index = evaluate_clustering(dbscan_labels)
+print(f"DBSCAN - Silhouette Score: {dbscan_silhouette:.3f}, Davies-Bouldin Index: {dbscan_db_index:.3f}")
+
+# ---- 5. Visualize the Clusters ----
+def plot_clusters(X, labels, title):
+    plt.figure(figsize=(8, 6))
+    plt.scatter(X[:, 0], X[:, 1], c=labels, cmap='viridis', marker='o')
+    plt.title(title)
+    plt.xlabel('Feature 1')
+    plt.ylabel('Feature 2')
+    plt.colorbar(label='Cluster ID')
+    plt.show()
+
+# Visualize K-Means clusters
+plot_clusters(X_scaled, kmeans_labels, 'K-Means Clustering')
+
+# Visualize Hierarchical clusters
+plot_clusters(X_scaled, hierarchical_labels, 'Hierarchical Clustering')
+
+# Visualize DBSCAN clusters
+plot_clusters(X_scaled, dbscan_labels, 'DBSCAN Clustering')
